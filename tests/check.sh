@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 /usr/lib/qt6/bin/qmlformat BarWidget.qml >/dev/null || { echo "FAIL: BarWidget.qml does not parse"; exit 1; }
 flags=$(grep -o -- '-Os [^"]*-o "' BarWidget.qml); flags=${flags% -o \"}
 cc $flags -o cris cris.c
+readelf -lW cris | grep -q "RWE" && { echo "FAIL: writable and executable segment"; exit 1; }
 fail() { echo "FAIL $1: $2"; exit 1; }
 first=$(timeout 2 ./cris | head -1); line=$(timeout 3 ./cris p 1 / | sed -n 2p); full=$(timeout 3 ./cris pf 1 / | sed -n 2p)
 case $first in *"i: …"*) ;; *) fail pending "$first" ;; esac

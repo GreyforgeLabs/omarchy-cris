@@ -23,7 +23,7 @@ static long key(char *b, const char *k) { char *q; for (; *b; b++) if ((q = is(b
 static char *f(char *o, const char *s, long n, const char *z) {  // s with # replaced by n and $ by z
   char d[20], *e;
   for (; *s; s++)
-    if (*s == '$') for (e = (char *)z; *e && e < z + 40;) *o++ = *e++;  // labels are capped, so 8 disks fit in b
+    if (*s == '$') for (e = (char *)z; *e && e < z + 40;) *o++ = *e++;  // labels are capped, so 8 disks fit in b[1024]
     else if (*s != '#') *o++ = *s;
     else { for (e = d; *e++ = '0' + n % 10, n /= 10;); while (e > d) *o++ = *--e; }
   return o;
@@ -37,7 +37,8 @@ static char *spd(char *o, const char *s, long b) {  // bytes/s as 999K, 1.2M or 
 
 void run(long *sp) {
   char **av = (char **)(sp + 1), *op = sp[0] > 1 ? av[1] : "p", *root = "/", **dk = sp[0] > 2 ? av + 3 : &root;
-  char b[8192], t[16], p[96], nic[20] = "", *q, *o, *l;  // b holds /proc/net/dev for dozens of interfaces
+  static char nd_buf[16384];  // /proc/net/dev for dozens of interfaces; untouched (so not resident) unless speed is on
+  char b[1024], t[16], p[96], nic[20] = "", *q, *o, *l;
   long on = 0, nd = sp[0] > 2 ? sp[0] - 3 : 1, tick = sp[0] > 2 ? (q = av[2], num(&q) * 1000) : 3000, nc = 0;
   if (nd > 8) nd = 8;
   if (tick < 1000) tick = 1000;
@@ -87,8 +88,8 @@ void run(long *sp) {
       for (x = 0; x < 16 && q + x < o; x++) p[x] = q[x];
       p[x] = ':', p[x + 1] = 0;
       if (!(l = is(nic, p)) || *l) for (x = 0, prx = ptx = 0; (nic[x] = p[x]); x++);  // new interface: restart the rate
-      for (rd(fd, b, sizeof b), q = b; *q; q++)  // "  name: rx_bytes packets errs drop fifo frame compressed multicast tx_bytes"
-        if ((q == b || q[-1] == ' ' || q[-1] == '\n') && (o = is(q, nic))) {
+      for (rd(fd, nd_buf, sizeof nd_buf), q = nd_buf; *q; q++)  // "  name: rx_bytes packets errs drop fifo frame compressed multicast tx_bytes"
+        if ((q == nd_buf || q[-1] == ' ' || q[-1] == '\n') && (o = is(q, nic))) {
           for (rx = num(&o), x = 0; x < 8; x++) tx = num(&o);
           break;
         }

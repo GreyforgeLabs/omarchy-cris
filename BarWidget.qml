@@ -40,7 +40,7 @@ BarWidget {
     model: [root.argv]
     Process {
       running: true
-      command: ["sh", "-c", 'b=$HOME/.cache/omarchy-cris; [ "$b" -nt "$1" ] || { cc -Os -static -nostdlib -fno-pie -no-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident -fcf-protection=none -Wa,-mx86-used-note=no -s -Wl,-n,--build-id=none -o "$b.$$" "$1" && mv -f "$b.$$" "$b"; } || { echo "cris needs gcc: sudo pacman -S gcc"; exit; }; shift; exec env -i "$b" "$@"',
+      command: ["sh", "-c", 'b=$HOME/.cache/omarchy-cris; [ "$b" -nt "$1" ] || { cc -Os -static -nostdlib -fno-pie -no-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident -fcf-protection=none -Wa,-mx86-used-note=no -s -Wl,-z,noseparate-code,--build-id=none -o "$b.$$" "$1" && mv -f "$b.$$" "$b"; } || { echo "cris needs gcc: sudo pacman -S gcc"; exit; }; shift; exec env -i "$b" "$@"',
         "sh", decodeURIComponent(Qt.resolvedUrl("cris.c").toString().slice(7))].concat(modelData.split("\n"))
       stdout: SplitParser { onRead: line => t.text = line }
     }
