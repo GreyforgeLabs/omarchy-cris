@@ -5,19 +5,11 @@
   "version": "1.0.0",
   "author": "Greyforge Labs",
   "license": "MIT",
-  "description": "CPU, RAM, Internet, Storage as one line of bar text from a 4 KB libc-free process.",
+  "description": "CPU, RAM, Internet, Storage: one line of bar text from a 16 KB process. Click it for settings.",
   "kinds": ["bar-widget"],
   "entryPoints": { "barWidget": "BarWidget.qml" },
   "barWidget": {
     "defaultSection": "left",
-    "defaults": { "cpuTemp": false, "gpu": false, "swap": false, "interval": 3, "pingHost": "1.1.1.1", "disks": "/" },
-    "schema": [
-      { "key": "cpuTemp", "type": "boolean", "label": "CPU temperature", "defaultValue": false },
-      { "key": "gpu", "type": "boolean", "label": "GPU load and temperature", "defaultValue": false, "description": "AMD GPUs. Shows off while the GPU sleeps, without waking it." },
-      { "key": "swap", "type": "boolean", "label": "Swap", "defaultValue": false },
-      { "key": "interval", "type": "integer", "label": "Update every (seconds)", "min": 1, "max": 60, "step": 1, "defaultValue": 3 },
-      { "key": "pingHost", "type": "string", "label": "Ping host (IPv4)", "defaultValue": "1.1.1.1" },
-      { "key": "disks", "type": "string", "label": "Disks", "defaultValue": "/", "description": "Mount points separated by spaces, e.g. / /home /mnt/data. Leave empty for none." }
-    ]
+    "defaults": { "cpuTemp": false, "gpu": false, "swap": false, "ping": true, "speed": false, "interval": 3, "disks": "/" }
   }
 }
