@@ -4,6 +4,7 @@ set -e
 cd "$(dirname "$0")/.."
 flags=$(grep -o -- '-Os [^"]*-o "' BarWidget.qml); flags=${flags% -o \"}
 cc $flags -o cris cris.c
+/usr/lib/qt6/bin/qmlformat BarWidget.qml >/dev/null || { echo "FAIL: BarWidget.qml does not parse"; exit 1; }
 fail() { echo "FAIL $1: $2"; exit 1; }
 line=$(timeout 3 ./cris "" 1 | sed -n 2p)
 echo "$line" | grep -Eq '^cpu: [0-9]+% ram: [0-9]+% net: ([0-9]+ ms|down) disk: [0-9]+%$' || fail format "$line"

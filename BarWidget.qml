@@ -24,9 +24,10 @@ BarWidget {
     String(setting("interval", 3)), String(setting("pingHost", "1.1.1.1")), disks.join(" ")]
   implicitWidth: t.implicitWidth + Style.spaceReal(16); implicitHeight: barSize
 
-  component Label: Text { color: root.fg; font { family: root.fam; pixelSize: Style.font.body }; renderType: Text.NativeRendering }
+  component Label: Text { color: root.fg; font.family: root.fam; font.pixelSize: Style.font.body; renderType: Text.NativeRendering }
   component Opt: Label {  // dim when off; click to pick
-    property bool lit; signal pick
+    property bool lit
+    signal pick
     opacity: lit ? 1 : 0.4
     MouseArea { anchors.fill: parent; onClicked: parent.pick() }
   }
