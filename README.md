@@ -26,10 +26,10 @@ Click it for settings. Bright is on, dim is off:
 |                                    | RAM      | CPU per 3 s tick |
 | ---------------------------------- | -------- | ---------------- |
 | a program that only sleeps         | 12 KB    | ~60 µs           |
-| **CRIS**                           | 16 KB    | ~110 µs          |
+| **CRIS**                           | 16 KB    | ~120 µs          |
 | suckless slstatus (cpu, ram, disk) | 2,556 KB | ~250 µs, no ping |
 
-One 5 KB process with no libc and no environment: raw syscalls, files and socket opened once, one
+One 5 KB process per bar, with no libc and no environment: raw syscalls, files and socket opened once, one
 wakeup per tick, nothing read that you did not turn on. The ping reply is timestamped by the kernel,
 so it never wakes CRIS up. Measure it yourself: `tests/bench.sh`.
 
