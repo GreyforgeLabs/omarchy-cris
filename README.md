@@ -23,14 +23,17 @@ Click it for settings. Bright is on, dim is off:
 
 ## How light
 
-|                                    | RAM      | CPU per 3 s tick |
-| ---------------------------------- | -------- | ---------------- |
-| a program that only sleeps         | 12 KB    | ~60 µs           |
-| **CRIS**                           | 16 KB    | ~120 µs          |
-| suckless slstatus (cpu, ram, disk) | 2,556 KB | ~250 µs, no ping |
+|                                    | RAM       | CPU per 3 s tick  |
+| ---------------------------------- | --------- | ----------------- |
+| a program that only sleeps         | 12 KB     | ~60 µs            |
+| **CRIS**                           | **16 KB** | **~70-120 µs**    |
+| suckless slstatus (cpu, ram, disk) | 2,556 KB  | ~250 µs, no ping  |
+| top (batch mode)                   | 6,100 KB  | ~11,000 µs        |
+| btop                               | 32,188 KB |                   |
 
 One 5 KB process per bar, with no libc and no environment: raw syscalls, files and socket opened once, one
 wakeup per tick, nothing read that you did not turn on. The ping reply is timestamped by the kernel,
-so it never wakes CRIS up. Measure it yourself: `tests/bench.sh`.
+so it never wakes CRIS up. Measure it yourself: `tests/bench.sh` (the others were measured the same way, side by
+side on the same machine, in September 2026).
 
 x86-64 Linux. Compiles itself on first run with gcc, which Omarchy ships. MIT © Greyforge Labs.
