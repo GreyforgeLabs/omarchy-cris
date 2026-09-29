@@ -8,7 +8,7 @@ cc $flags -o /tmp/cris-bench cris.c
 printf '%s\n' '#include <sys/syscall.h>' '__asm__(".globl _start\n_start: and $-16, %rsp\n call run");' \
   'void run(void) { for (long n;;) { n = SYS_poll; __asm__ volatile("syscall" : "+a"(n) : "D"(0), "S"(0), "d"(3000) : "rcx", "r11", "memory"); } }' \
   > /tmp/cris-idle.c && cc $flags -o /tmp/cris-idle /tmp/cris-idle.c
-env -i /tmp/cris-bench >/dev/null & a=$!; env -i /tmp/cris-bench tgspn 3 / >/dev/null & b=$!; env -i /tmp/cris-idle & c=$!
+env -i /tmp/cris-bench >/dev/null & a=$!; env -i /tmp/cris-bench crtgspn 3 / >/dev/null & b=$!; env -i /tmp/cris-idle & c=$!
 sleep 60
 for p in $a $b $c; do
   read -r ns _ < /proc/$p/schedstat

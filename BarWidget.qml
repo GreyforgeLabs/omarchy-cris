@@ -10,11 +10,11 @@ BarWidget {
   property bool menu: false
   readonly property color fg: bar ? bar.barForeground : Color.foreground
   readonly property string fam: bar ? bar.fontFamily : Style.font.family
-  readonly property var shows: [["cpuTemp", "cpu temp", "t"], ["gpu", "gpu", "g"], ["swap", "swap", "s"], ["ping", "ping", "p"], ["speed", "speed", "n"]]
+  readonly property var shows: [["cpu", "cpu", "c"], ["cpuTemp", "temp", "t"], ["gpu", "gpu", "g"], ["ram", "ram", "r"], ["swap", "swap", "s"], ["ping", "ping", "p"], ["speed", "speed", "n"]]
   readonly property var disks: [].concat(setting("disks", ["/"])).filter(d => d)  // a list of mount points
   readonly property int every: Number(setting("interval", 3))
   readonly property bool full: setting("labels", "cris") === "full"  // cpu ram net disk instead of c r i s
-  function on(k) { return String(setting(k, k === "ping")) === "true" }  // ping is the only option on by default
+  function on(k) { return String(setting(k, ["cpu", "ram", "ping"].includes(k))) === "true" }  // on by default: cpu, ram, ping
   function set(k, v) {  // persist one setting in this widget's shell.json entry
     const e = { id: moduleName }
     for (const x in settings) if (x !== "id") e[x] = settings[x]

@@ -1,6 +1,6 @@
 // CRIS: CPU, RAM, Internet, Storage as one line of bar text. x86-64 Linux, no libc.
-// usage: cris [options [seconds [mount...]]]   (no arguments: cris p 3 /)
-// options: p ping 1.1.1.1, n network speed, t CPU temperature, g GPU load and temperature, s swap, f full labels
+// usage: cris [options [seconds [mount...]]]   (no arguments: cris crp 3 /)
+// options: c cpu, r ram, p ping 1.1.1.1, n network speed, t CPU temperature, g GPU load and temperature, s swap, f full labels
 #include <linux/sockios.h>
 #include <netinet/in.h>
 #include <sys/statfs.h>
@@ -36,7 +36,7 @@ static char *spd(char *o, const char *s, long b) {  // bytes/s as 999K, 1.2M or 
 }
 
 void run(long *sp) {
-  char **av = (char **)(sp + 1), *op = sp[0] > 1 ? av[1] : "p", *root = "/", **dk = sp[0] > 2 ? av + 3 : &root;
+  char **av = (char **)(sp + 1), *op = sp[0] > 1 ? av[1] : "crp", *root = "/", **dk = sp[0] > 2 ? av + 3 : &root;
   static char nd_buf[16384];  // /proc/net/dev for dozens of interfaces; untouched (so not resident) unless speed is on
   char b[1024], t[16], p[96], nic[20] = "", *q, *o, *l;
   long on = 0, nd = sp[0] > 2 ? sp[0] - 3 : 1, tick = sp[0] > 2 ? (q = av[2], num(&q) * 1000) : 3000, nc = 0;
@@ -71,13 +71,13 @@ void run(long *sp) {
   struct timespec s0, ts;
   S(SYS_ioctl, ic, SIOCGSTAMPNS, &ts);  // turns on kernel receive timestamps, so a reply never has to wake us
   for (;;) {
-    long t0 = ms(), rx = 0, tx = 0, id;
+    long t0 = ms(), rx = 0, tx = 0, id = 0;
     for (rtt = pw ? -1 : -2; ic >= 0 && S(SYS_read, ic, r, sizeof r) > 0;)  // the reply to last tick's ping
       if (r[3] == h[3] && !S(SYS_ioctl, ic, SIOCGSTAMPNS, &ts)) rtt = (ts.tv_sec - s0.tv_sec) * 1000 + (ts.tv_nsec - s0.tv_nsec) / 1000000;
     if (ic >= 0) h[3]++, S(SYS_clock_gettime, CLOCK_REALTIME, &s0, 0), sys(SYS_sendto, ic, (long)h, sizeof h, (long)&a, sizeof a);
-    rd(fu, b, 64), q = b, num(&q), num(&q), id = num(&q) * 100, id += num(&q);  // idle centiseconds over all CPUs
+    if (ON('c')) rd(fu, b, 64), q = b, num(&q), num(&q), id = num(&q) * 100, id += num(&q);  // idle centiseconds over all CPUs
     long cpu = pw ? 100 - 1000 * (id - pi) / ((t0 - pw) * nc) : 0;
-    rd(fm, b, 640);
+    if (ON('r') || ON('s')) rd(fm, b, 640);
     long mt = key(b, "MemTotal:"), ma = key(b, "MemAvailable:"), st = key(b, "SwapTotal:"), sw = key(b, "SwapFree:");
     if (fn >= 0) {  // traffic of the interface holding the default route (the line whose destination is 00000000)
       for (rd(fn, b, 1024), q = b; *q; q = l + (*l != 0)) {
@@ -95,7 +95,8 @@ void run(long *sp) {
         }
     }
 
-    o = f(b, "$: #%", cpu < 0 ? 0 : cpu > 100 ? 100 : cpu, L("cpu", "c"));
+    o = b;  // every part starts with a space; the first one is dropped when writing
+    if (ON('c')) o = f(o, " $: #%", cpu < 0 ? 0 : cpu > 100 ? 100 : cpu, L("cpu", "c"));
     if (ft >= 0) o = f(o, " $: #°", (val(ft) + 500) / 1000, L("temp", "t"));  // millidegrees
     if (fg >= 0 && (rd(fr, t, sizeof t), *t == 's')) o = f(o, " $: off", 0, L("gpu", "g"));  // suspended: a read would wake it
     else if (fg >= 0) {
@@ -103,7 +104,7 @@ void run(long *sp) {
       o = f(o, " $: #%", gl, L("gpu", "g"));
       if (gt >= 0) o = f(o, " $: #°", (gt + 500) / 1000, L("temp", "t"));
     }
-    o = f(o, " $: #%", (100 * (mt - ma) + mt / 2) / mt, L("ram", "r"));
+    if (ON('r')) o = f(o, " $: #%", (100 * (mt - ma) + mt / 2) / mt, L("ram", "r"));
     if (ON('s')) o = f(o, " $: #%", st ? (100 * (st - sw) + st / 2) / st : 0, L("swap", "sw"));
     if (ON('p') || fn >= 0) o = f(o, " $:", 0, L("net", "i"));
     if (ON('p')) o = f(o, ic < 0 ? " n/a" : rtt == -2 ? " …" : rtt < 0 ? " down" : " # ms", rtt, 0);
@@ -115,7 +116,7 @@ void run(long *sp) {
       o = du < 0 ? f(o, " $: ?", 0, i ? l : L("disk", "s")) : f(o, " $: #%", dt ? (100 * du + dt - 1) / dt : 0, i ? l : L("disk", "s"));
     }
     *o++ = '\n', pi = id, pw = t0, prx = rx, ptx = tx;
-    if (S(SYS_write, 1, b, o - b) < 0) S(SYS_exit, 0, 0, 0);  // the bar went away
+    if (S(SYS_write, 1, b + (o - b > 1), o - b - (o - b > 1)) < 0) S(SYS_exit, 0, 0, 0);  // the bar went away
     if ((x = tick - (ms() - t0)) > 0) S(SYS_poll, 0, 0, x);  // sleep out the tick (a negative timeout would never return)
   }
 }
