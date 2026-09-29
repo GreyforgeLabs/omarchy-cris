@@ -23,7 +23,7 @@ static long key(char *b, const char *k) { char *q; for (; *b; b++) if ((q = is(b
 static char *f(char *o, const char *s, long n, const char *z) {  // s with # replaced by n and $ by z
   char d[20], *e;
   for (; *s; s++)
-    if (*s == '$') for (e = (char *)z; *e;) *o++ = *e++;
+    if (*s == '$') for (e = (char *)z; *e && e < z + 40;) *o++ = *e++;  // labels are capped, so 8 disks fit in b
     else if (*s != '#') *o++ = *s;
     else { for (e = d; *e++ = '0' + n % 10, n /= 10;); while (e > d) *o++ = *--e; }
   return o;
@@ -37,9 +37,11 @@ static char *spd(char *o, const char *s, long b) {  // bytes/s as 999K, 1.2M or 
 
 void run(long *sp) {
   char **av = (char **)(sp + 1), *op = sp[0] > 1 ? av[1] : "p", *root = "/", **dk = sp[0] > 2 ? av + 3 : &root;
-  char b[2048], t[16], p[96], nic[20] = "", *q, *o, *l;
-  long on = 0, nd = sp[0] > 2 ? sp[0] - 3 : 1, tick = sp[0] > 2 ? (q = av[2], num(&q) * 1000) : 3000;
-  long ft = -1, fg = -1, fr = -1, fh = -1, gap = 0, gw = -99999, gl = 0, gt = -1, x, pi = 0, pw = 0, prx = 0, ptx = 0;
+  char b[8192], t[16], p[96], nic[20] = "", *q, *o, *l;  // b holds /proc/net/dev for dozens of interfaces
+  long on = 0, nd = sp[0] > 2 ? sp[0] - 3 : 1, tick = sp[0] > 2 ? (q = av[2], num(&q) * 1000) : 3000, nc = 0;
+  if (nd > 8) nd = 8;
+  if (tick < 1000) tick = 1000;
+  long ft = -1, fg = -1, fr = -1, fh = -1, gap = 1, gw = -1, gl = 0, gt = -1, x, y = -1, pi = 0, pw = 0, prx = 0, ptx = 0;
   for (q = op; *q; q++) on |= 1L << (*q & 31);
   for (long i = 0; ON('t') && i < 32 && ft < 0; i++, S(SYS_close, x, 0, 0))  // AMD k10temp/zenpower or Intel coretemp
     if (rd(x = at("/sys/class/hwmon/hwmon#/name", i, 0), t, sizeof t) && (is(t, "k10temp") || is(t, "zenpower") || is(t, "coretemp")))
@@ -48,13 +50,18 @@ void run(long *sp) {
     if ((fg = at("/sys/class/drm/card#/device/gpu_busy_percent", c, 0)) >= 0) {
       *f(p, "/sys/class/drm/card#/device/", c, 0) = 0;
       fr = at("$power/runtime_status", 0, p);
-      // Each read resets the runtime-PM idle timer: with runtime PM on, read once per autosuspend delay so it can sleep.
-      if (rd(x = at("$power/control", 0, p), t, sizeof t) && *t == 'a') gap = val(at("$power/autosuspend_delay_ms", 0, p)) + 1000;
+      // Each read resets the runtime-PM idle timer. With runtime PM on, read once per slot of the monotonic clock,
+      // longer than autosuspend delay + tick: samplers on several monitors then read together and the GPU can still sleep.
+      if (rd(x = at("$power/control", 0, p), t, sizeof t) && *t == 'a') gap = val(y = at("$power/autosuspend_delay_ms", 0, p)) + tick + 1000;
+      S(SYS_close, x, 0, 0), S(SYS_close, y, 0, 0);
       for (long k = 0; k < 32 && fh < 0; k++) fh = at("$hwmon/hwmon#/temp1_input", k, p);
     }
   unsigned short h[4] = { 8 }, r[4];  // ICMP echo request; the kernel fills id and checksum
-  unsigned long m[16], nc = 0, n = S(SYS_sched_getaffinity, 0, sizeof m, m);
-  for (unsigned long i = 0; i < n * 8; i++) nc += m[i / 64] >> i % 64 & 1;
+  for (rd(x = S(SYS_open, "/sys/devices/system/cpu/online", 0, 0), b, 256), S(SYS_close, x, 0, 0), q = b; *q >= '0';) {  // "0-3,8-11"
+    long lo = num(&q), hi = *q == '-' ? num(&q) : lo;
+    nc += hi - lo + 1, q += *q == ',';
+  }
+  if (nc < 1) nc = 1;
   struct sockaddr_in a = { AF_INET, 0, { 0x01010101 } };  // 1.1.1.1
   long ic = ON('p') ? S(SYS_socket, AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP) : -1, rtt, fu = S(SYS_open, "/proc/uptime", 0, 0),
        fm = S(SYS_open, "/proc/meminfo", 0, 0), fn = ON('n') ? S(SYS_open, "/proc/net/route", 0, 0) : -1,
@@ -62,10 +69,9 @@ void run(long *sp) {
   struct statfs sf;
   struct timespec s0, ts;
   S(SYS_ioctl, ic, SIOCGSTAMPNS, &ts);  // turns on kernel receive timestamps, so a reply never has to wake us
-  if (tick < 1000) tick = 1000;
   for (;;) {
     long t0 = ms(), rx = 0, tx = 0, id;
-    for (rtt = h[3] ? -1 : -2; ic >= 0 && S(SYS_read, ic, r, sizeof r) > 0;)  // the reply to last tick's ping
+    for (rtt = pw ? -1 : -2; ic >= 0 && S(SYS_read, ic, r, sizeof r) > 0;)  // the reply to last tick's ping
       if (r[3] == h[3] && !S(SYS_ioctl, ic, SIOCGSTAMPNS, &ts)) rtt = (ts.tv_sec - s0.tv_sec) * 1000 + (ts.tv_nsec - s0.tv_nsec) / 1000000;
     if (ic >= 0) h[3]++, S(SYS_clock_gettime, CLOCK_REALTIME, &s0, 0), sys(SYS_sendto, ic, (long)h, sizeof h, (long)&a, sizeof a);
     rd(fu, b, 64), q = b, num(&q), num(&q), id = num(&q) * 100, id += num(&q);  // idle centiseconds over all CPUs
@@ -92,7 +98,7 @@ void run(long *sp) {
     if (ft >= 0) o = f(o, " $: #°", (val(ft) + 500) / 1000, L("temp", "t"));  // millidegrees
     if (fg >= 0 && (rd(fr, t, sizeof t), *t == 's')) o = f(o, " $: off", 0, L("gpu", "g"));  // suspended: a read would wake it
     else if (fg >= 0) {
-      if (t0 - gw >= gap) gl = val(fg), gt = fh < 0 ? -1 : val(fh), gw = t0;
+      if (t0 / gap != gw) gl = val(fg), gt = fh < 0 ? -1 : val(fh), gw = t0 / gap;
       o = f(o, " $: #%", gl, L("gpu", "g"));
       if (gt >= 0) o = f(o, " $: #°", (gt + 500) / 1000, L("temp", "t"));
     }
@@ -109,6 +115,6 @@ void run(long *sp) {
     }
     *o++ = '\n', pi = id, pw = t0, prx = rx, ptx = tx;
     if (S(SYS_write, 1, b, o - b) < 0) S(SYS_exit, 0, 0, 0);  // the bar went away
-    S(SYS_poll, 0, 0, tick - (ms() - t0));  // sleep out the tick
+    if ((x = tick - (ms() - t0)) > 0) S(SYS_poll, 0, 0, x);  // sleep out the tick (a negative timeout would never return)
   }
 }

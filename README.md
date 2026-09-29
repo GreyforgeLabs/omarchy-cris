@@ -19,7 +19,7 @@ Click it for settings. Bright is on, dim is off:
 - **ram**: real memory pressure (`MemTotal - MemAvailable`). Cache does not count as used.
 - **internet**: latency, not bandwidth. Latency is what you feel in every page load, call, game and
   SSH session, and a ping shows a dead connection instantly. Want bandwidth anyway? Turn on speed.
-- **storage**: space left. A full disk is the failure that silently breaks everything else.
+- **storage**: space used. A full disk is the failure that silently breaks everything else.
 
 ## How light
 
