@@ -2,40 +2,35 @@
 
     omarchy plugin add https://github.com/GreyforgeLabs/omarchy-cris --enable
 
-**C**PU, **R**AM, **I**nternet, **S**torage. The most minimalistic resource monitor on the planet.
+**C**PU, **R**AM, **I**nternet, **S**torage. The lightest system monitor on the planet.
 
-    cpu: 4% ram: 57% net: 24 ms disk: 75%
+    c: 4% r: 57% i: 24 ms s: 75%
 
-Four numbers, because these are the four that matter:
+Click it for settings. Bright is on, dim is off:
+
+    show    cpu temp  gpu  swap  ping  speed
+    every   1s  3s  5s  10s
+    labels  cris  full                        full: cpu: 4% ram: 57% net: 24 ms disk: 75%
+    disks   /  /boot  /mnt/data               found automatically
+
+## Why these four
 
 - **cpu**: is the machine busy? One number for all cores.
-- **ram**: real memory pressure (`MemTotal - MemAvailable`). Cache is not counted as used.
-- **net**: latency, not throughput. Latency is what you feel in every page load, call, game and SSH
-  session, and a ping shows a dead connection instantly.
-- **disk**: space left. A full disk is the failure that silently breaks everything else.
+- **ram**: real memory pressure (`MemTotal - MemAvailable`). Cache does not count as used.
+- **internet**: latency, not bandwidth. Latency is what you feel in every page load, call, game and
+  SSH session, and a ping shows a dead connection instantly. Want bandwidth anyway? Turn on speed.
+- **storage**: space left. A full disk is the failure that silently breaks everything else.
 
-## Options
+## How light
 
-In the widget's settings. Anything left off is never read.
+|                                    | RAM      | CPU per 3 s tick |
+| ---------------------------------- | -------- | ---------------- |
+| a program that only sleeps         | 12 KB    | ~60 µs           |
+| **CRIS**                           | 16 KB    | ~110 µs          |
+| suckless slstatus (cpu, ram, disk) | 2,556 KB | ~250 µs, no ping |
 
-| Setting         | Default   |                                                         |
-| --------------- | --------- | ------------------------------------------------------- |
-| CPU temperature | off       | `cpu: 4% 52°`                                           |
-| GPU             | off       | `gpu: 12% 45°` (AMD). Shows `off` while the GPU sleeps, and never wakes it |
-| Swap            | off       | `swap: 3%`                                              |
-| Update every    | 3 s       |                                                         |
-| Ping host       | `1.1.1.1` | any IPv4 address                                        |
-| Disks           | `/`       | mount points, e.g. `/ /home /mnt/data` → `disk: 75% home: 40% data: 91%` |
+One 5 KB process with no libc and no environment: raw syscalls, files and socket opened once, one
+wakeup per tick, nothing read that you did not turn on. The ping reply is timestamped by the kernel,
+so it never wakes CRIS up. Measure it yourself: `tests/bench.sh`.
 
-## Numbers
-
-One 4 KB process with no libc: raw syscalls, files and socket kept open, asleep between ticks.
-Measured at the 3 s interval with `tests/bench.sh`:
-
-|                   | Binary       | RAM      | CPU per tick |
-| ----------------- | ------------ | -------- | ------------ |
-| CRIS              | 4.2 KB       | 28 KB    | 98 µs, including the ping |
-| CRIS, all options | 4.2 KB       | 28 KB    | 358 µs (AMD GPU firmware reads are most of it) |
-| suckless slstatus | 36 KB + libc | 2,588 KB | 240 µs, no ping |
-
-x86-64 Linux, needs `cc`. MIT © Greyforge Labs.
+x86-64 Linux. Compiles itself on first run with gcc, which Omarchy ships. MIT © Greyforge Labs.

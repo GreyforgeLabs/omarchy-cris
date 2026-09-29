@@ -10,6 +10,6 @@
   "entryPoints": { "barWidget": "BarWidget.qml" },
   "barWidget": {
     "defaultSection": "left",
-    "defaults": { "cpuTemp": false, "gpu": false, "swap": false, "ping": true, "speed": false, "interval": 3, "disks": "/" }
+    "defaults": { "cpuTemp": false, "gpu": false, "swap": false, "ping": true, "speed": false, "interval": 3, "labels": "cris", "disks": "/" }
   }
 }

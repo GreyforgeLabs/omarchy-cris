@@ -13,6 +13,7 @@ BarWidget {
   readonly property var shows: [["cpuTemp", "cpu temp", "t"], ["gpu", "gpu", "g"], ["swap", "swap", "s"], ["ping", "ping", "p"], ["speed", "speed", "n"]]
   readonly property var disks: String(setting("disks", "/")).split(" ").filter(d => d)
   readonly property int every: Number(setting("interval", 3))
+  readonly property bool full: setting("labels", "cris") === "full"  // cpu ram net disk instead of c r i s
   function on(k) { return String(setting(k, k === "ping")) === "true" }  // ping is the only option on by default
   function set(k, v) {  // persist one setting in this widget's shell.json entry
     const e = { id: moduleName }
@@ -33,12 +34,14 @@ BarWidget {
 
   Label { id: t; anchors.centerIn: parent }
   MouseArea { anchors.fill: parent; onClicked: root.menu = !root.menu }
-  Instantiator {  // a settings change swaps in a sampler started with the new arguments
-    model: [[root.shows.filter(s => root.on(s[0])).map(s => s[2]).join(""), String(root.every)].concat(root.disks)]
+  // Sampler arguments. A string only signals when its value changes, so re-saving a setting restarts nothing.
+  readonly property string argv: [shows.filter(s => on(s[0])).map(s => s[2]).join("") + (full ? "f" : ""), every].concat(disks).join("\n")
+  Instantiator {  // a real change swaps in a sampler started with the new arguments
+    model: [root.argv]
     Process {
       running: true
       command: ["sh", "-c", 'b=$HOME/.cache/omarchy-cris; [ "$b" -nt "$1" ] || cc -Os -static -nostdlib -fno-pie -no-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident -fcf-protection=none -Wa,-mx86-used-note=no -s -Wl,-n,--build-id=none -o "$b" "$1" || { echo "cris needs gcc: sudo pacman -S gcc"; exit; }; shift; exec env -i "$b" "$@"',
-        "sh", Qt.resolvedUrl("cris.c").toString().slice(7)].concat(modelData)
+        "sh", Qt.resolvedUrl("cris.c").toString().slice(7)].concat(modelData.split("\n"))
       stdout: SplitParser { onRead: line => t.text = line }
     }
   }
@@ -56,6 +59,8 @@ BarWidget {
         Row { spacing: Style.space(12); Repeater { model: root.shows; Opt { text: modelData[1]; lit: root.on(modelData[0]); onPick: root.set(modelData[0], !lit) } } }
         Label { text: "every"; opacity: 0.6 }
         Row { spacing: Style.space(12); Repeater { model: [1, 3, 5, 10]; Opt { text: modelData + "s"; lit: root.every === modelData; onPick: root.set("interval", modelData) } } }
+        Label { text: "labels"; opacity: 0.6 }
+        Row { spacing: Style.space(12); Repeater { model: ["cris", "full"]; Opt { text: modelData; lit: root.full === (modelData === "full"); onPick: root.set("labels", modelData) } } }
         Label { text: "disks"; opacity: 0.6 }
         Row {
           spacing: Style.space(12)

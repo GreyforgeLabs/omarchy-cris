@@ -1,6 +1,6 @@
 // CRIS: CPU, RAM, Internet, Storage as one line of bar text. x86-64 Linux, no libc.
 // usage: cris [options [seconds [mount...]]]   (no arguments: cris p 3 /)
-// options: p ping 1.1.1.1, n network speed, t CPU temperature, g GPU load and temperature, s swap
+// options: p ping 1.1.1.1, n network speed, t CPU temperature, g GPU load and temperature, s swap, f full labels
 #include <linux/sockios.h>
 #include <netinet/in.h>
 #include <sys/statfs.h>
@@ -8,6 +8,7 @@
 #include <time.h>
 #define S(n, a, b, c) sys(n, (long)(a), (long)(b), (long)(c), 0, 0)
 #define ON(c) (on >> ((c) & 31) & 1)
+#define L(full, short) (ON('f') ? full : short)  // labels: c r i s by default, cpu ram net disk with f
 __asm__(".globl _start\n_start: mov %rsp, %rdi\n and $-16, %rsp\n call run");
 
 static long sys(long n, long a, long b, long c, long e, long f) {
@@ -30,7 +31,6 @@ static char *f(char *o, const char *s, long n, const char *z) {  // s with # rep
 static long rd(long fd, char *b, long n) { long r = fd < 0 ? 0 : S(SYS_pread64, fd, b, n - 1); b[r > 0 ? r : 0] = 0; return r; }
 static long val(long fd) { char t[24], *p = t; rd(fd, t, sizeof t); return num(&p); }
 static long at(const char *s, long n, const char *z) { char p[128]; *f(p, s, n, z) = 0; return S(SYS_open, p, 0, 0); }
-static char *deg(char *o, long md) { return md < 0 ? o : f(o, " #°", (md + 500) / 1000, 0); }  // millidegrees
 static char *spd(char *o, const char *s, long b) {  // bytes/s as 999K, 1.2M or 12M
   return b < 1000000 ? f(o, "$#K", b / 1000, s) : b < 10000000 ? f(f(o, "$#.", b / 1000000, s), "#M", b / 100000 % 10, 0) : f(o, "$#M", b / 1000000, s);
 }
@@ -88,21 +88,24 @@ void run(long *sp) {
         }
     }
 
-    o = deg(f(b, "cpu: #%", cpu < 0 ? 0 : cpu > 100 ? 100 : cpu, 0), ft < 0 ? -1 : val(ft));
-    if (fg >= 0 && (rd(fr, t, sizeof t), *t == 's')) o = f(o, " gpu: off", 0, 0);  // suspended: a read would wake it
+    o = f(b, "$: #%", cpu < 0 ? 0 : cpu > 100 ? 100 : cpu, L("cpu", "c"));
+    if (ft >= 0) o = f(o, " $: #°", (val(ft) + 500) / 1000, L("temp", "t"));  // millidegrees
+    if (fg >= 0 && (rd(fr, t, sizeof t), *t == 's')) o = f(o, " $: off", 0, L("gpu", "g"));  // suspended: a read would wake it
     else if (fg >= 0) {
       if (t0 - gw >= gap) gl = val(fg), gt = fh < 0 ? -1 : val(fh), gw = t0;
-      o = deg(f(o, " gpu: #%", gl, 0), gt);
+      o = f(o, " $: #%", gl, L("gpu", "g"));
+      if (gt >= 0) o = f(o, " $: #°", (gt + 500) / 1000, L("temp", "t"));
     }
-    o = f(o, " ram: #%", (100 * (mt - ma) + mt / 2) / mt, 0);
-    if (ON('s')) o = f(o, " swap: #%", st ? (100 * (st - sw) + st / 2) / st : 0, 0);
-    if (ON('p')) o = f(o, ic < 0 ? " net: n/a" : rtt == -2 ? " net: …" : rtt < 0 ? " net: down" : " net: # ms", rtt, 0);
-    if (fn >= 0) o = spd(spd(f(o, ON('p') ? "" : " net:", 0, 0), " ↓", prx && rx > prx ? (rx - prx) * 1000 / (t0 - pw) : 0),
+    o = f(o, " $: #%", (100 * (mt - ma) + mt / 2) / mt, L("ram", "r"));
+    if (ON('s')) o = f(o, " $: #%", st ? (100 * (st - sw) + st / 2) / st : 0, L("swap", "sw"));
+    if (ON('p') || fn >= 0) o = f(o, " $:", 0, L("net", "i"));
+    if (ON('p')) o = f(o, ic < 0 ? " n/a" : rtt == -2 ? " …" : rtt < 0 ? " down" : " # ms", rtt, 0);
+    if (fn >= 0) o = spd(spd(o, " ↓", prx && rx > prx ? (rx - prx) * 1000 / (t0 - pw) : 0),
                          " ↑", ptx && tx > ptx ? (tx - ptx) * 1000 / (t0 - pw) : 0);
     for (long i = 0; i < nd; i++) {  // used / (used + avail), rounded up like df; labelled by last path component
       for (q = l = dk[i]; *q; q++) if (*q == '/' && q[1]) l = q + 1;
       long du = S(SYS_statfs, dk[i], &sf, 0) < 0 ? -1 : (long)(sf.f_blocks - sf.f_bfree), dt = du + (long)sf.f_bavail;
-      o = du < 0 ? f(o, " $: ?", 0, i ? l : "disk") : f(o, " $: #%", dt ? (100 * du + dt - 1) / dt : 0, i ? l : "disk");
+      o = du < 0 ? f(o, " $: ?", 0, i ? l : L("disk", "s")) : f(o, " $: #%", dt ? (100 * du + dt - 1) / dt : 0, i ? l : L("disk", "s"));
     }
     *o++ = '\n', pi = id, pw = t0, prx = rx, ptx = tx;
     if (S(SYS_write, 1, b, o - b) < 0) S(SYS_exit, 0, 0, 0);  // the bar went away
