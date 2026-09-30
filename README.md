@@ -37,3 +37,8 @@ so it never wakes CRIS up. Measure it yourself: `tests/bench.sh` (the others wer
 side on the same machine, in September 2026).
 
 x86-64 Linux. Compiles itself on first run with gcc, which Omarchy ships. MIT © Greyforge Labs.
+
+## Links
+
+- [CRIS announcement on X](https://x.com/GreyforgeLabs/status/2104939023513145412) — September 29, 2026.
+- [CRIS on Open Forge](https://greyforge.tech/open-source#cris) — Greyforge's open-source directory.
