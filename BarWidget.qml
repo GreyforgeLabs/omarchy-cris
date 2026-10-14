@@ -12,7 +12,7 @@ BarWidget {
   readonly property string fam: bar ? bar.fontFamily : Style.font.family
   readonly property var shows: [["cpu", "cpu", "c"], ["cpuTemp", "temp", "t"], ["gpu", "gpu", "g"], ["ram", "ram", "r"], ["swap", "swap", "s"], ["ping", "ping", "p"], ["speed", "speed", "n"]]
   readonly property var disks: [].concat(setting("disks", ["/"])).filter(d => d)  // a list of mount points
-  readonly property int every: Number(setting("interval", 3))
+  readonly property int every: Math.max(1, Math.round(Number(setting("interval", 3))) || 3)  // whole seconds; junk reads as 3
   readonly property bool full: setting("labels", "cris") === "full"  // cpu ram net disk instead of c r i s
   function on(k) { return String(setting(k, ["cpu", "ram", "ping"].includes(k))) === "true" }  // on by default: cpu, ram, ping
   function set(k, v) {  // persist one setting in this widget's shell.json entry
@@ -35,15 +35,23 @@ BarWidget {
   Label { id: t; anchors.centerIn: parent }
   MouseArea { anchors.fill: parent; onClicked: root.menu ? root.close() : root.menu = true }
   // Sampler arguments. A string only signals when its value changes, so re-saving a setting restarts nothing.
-  readonly property string argv: [shows.filter(s => on(s[0])).map(s => s[2]).join("") + (full ? "f" : ""), every].concat(disks).join("\n")
+  readonly property string argv: JSON.stringify([shows.filter(s => on(s[0])).map(s => s[2]).join("") + (full ? "f" : ""), String(every)].concat(disks.map(String)))
   Instantiator {  // a real change swaps in a sampler started with the new arguments
+    id: sampler
     model: [root.argv]
     Process {
       running: true
-      command: ["sh", "-c", 'b=$HOME/.cache/omarchy-cris; [ "$b" -nt "$1" ] || { cc -Os -static -nostdlib -fno-pie -no-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident -fcf-protection=none -Wa,-mx86-used-note=no -s -Wl,-z,noseparate-code,--build-id=none -o "$b.$$" "$1" && mv -f "$b.$$" "$b"; } || { echo "cris needs gcc: sudo pacman -S gcc"; exit; }; shift; exec env -i "$b" "$@"',
-        "sh", decodeURIComponent(Qt.resolvedUrl("cris.c").toString().slice(7))].concat(modelData.split("\n"))
+      command: ["sh", "-c", 'b=$HOME/.cache/omarchy-cris; [ "$b" -nt "$1" ] || { cc -Oz -static -nostdlib -fno-pie -no-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident -fcf-protection=none -Wa,-mx86-used-note=no -s -Wl,-z,noseparate-code,--build-id=none -o "$b.$$" "$1" && mv -f "$b.$$" "$b"; } || { echo "cris needs gcc: sudo pacman -S gcc"; exit; }; shift; exec env -i "$b" "$@"',
+        "sh", decodeURIComponent(Qt.resolvedUrl("cris.c").toString().slice(7))].concat(JSON.parse(modelData))
       stdout: SplitParser { onRead: line => t.text = line }
+      onExited: (code, status) => { if (code || status) retry.start() }  // killed or crashed: start again after a pause
     }
+  }
+
+  Timer {  // 5 s, then twice as long after each further failure, at most 5 min
+    id: retry
+    interval: 5000
+    onTriggered: { if (sampler.object) sampler.object.running = true; interval = Math.min(interval * 2, 300000) }
   }
 
   Loader {  // the settings card exists only while it is open; it opens once built, so the bar sees it open

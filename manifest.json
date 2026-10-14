@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "greyforge.cris",
   "name": "CRIS",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Greyforge Labs",
   "license": "MIT",
   "description": "CPU, RAM, Internet, Storage: one line of bar text from a 16 KB process. Click it for settings.",

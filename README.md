@@ -13,6 +13,8 @@ Click it for settings. Bright is on, dim is off:
     labels  cris  full                        full: cpu: 4% ram: 57% net: 24 ms disk: 75%
     disks   /  /boot  /mnt/data               found automatically
 
+A sensor the machine does not have (CPU temperature, an amdgpu load counter, a ping socket) reads `n/a`.
+
 ## Why these four
 
 - **cpu**: is the machine busy? One number for all cores.
@@ -32,7 +34,8 @@ Click it for settings. Bright is on, dim is off:
 | btop                               | 32,188 KB |                   |
 
 One 5 KB process per bar, with no libc and no environment: raw syscalls, files and socket opened once, one
-wakeup per tick, nothing read that you did not turn on. The ping reply is timestamped by the kernel,
+wakeup per tick on an absolute monotonic deadline, nothing read that you did not turn on. If the process is ever
+killed, the widget starts it again after 5 s, backing off to 5 min. The ping reply is timestamped by the kernel,
 so it never wakes CRIS up. Measure it yourself: `tests/bench.sh` (the others were measured the same way, side by
 side on the same machine, in September 2026).
 
