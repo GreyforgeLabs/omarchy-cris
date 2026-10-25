@@ -41,7 +41,7 @@ BarWidget {
     model: [root.argv]
     Process {
       running: true
-      command: ["sh", "-c", 'b=$HOME/.cache/omarchy-cris; [ "$b" -nt "$1" ] || { command -v cc >/dev/null || { echo "cris needs gcc: sudo pacman -S gcc"; exit; }; cc -Oz -static -nostdlib -fno-pie -no-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident -fcf-protection=none -Wa,-mx86-used-note=no -s -Wl,-z,noseparate-code,--build-id=none -o "$b.$$" "$1" && mv -f "$b.$$" "$b" || { rm -f "$b.$$"; echo "cris: build failed, retrying"; exit 1; }; }; shift; exec env -i "$b" "$@"',
+      command: ["sh", "-c", 'b=$HOME/.cache/omarchy-cris; [ "$b" -nt "$1" ] || { command -v cc >/dev/null || { echo "cris needs gcc: sudo pacman -S gcc"; exit; }; mkdir -p "${b%/*}"; cc -Oz -static -nostdlib -fno-pie -no-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-ident -fcf-protection=none -Wa,-mx86-used-note=no -s -Wl,-z,noseparate-code,--build-id=none -o "$b.$$" "$1" && mv -f "$b.$$" "$b" || { rm -f "$b.$$"; echo "cris: build failed, retrying"; exit 1; }; }; shift; exec env -i "$b" "$@"',
         "sh", decodeURIComponent(Qt.resolvedUrl("cris.c").toString().slice(7))].concat(JSON.parse(modelData))
       stdout: SplitParser { onRead: line => t.text = line }
       onExited: (code, status) => { if (code || status) retry.start() }  // killed, crashed or build failed: try again after a pause

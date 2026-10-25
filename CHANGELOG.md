@@ -10,6 +10,8 @@
   follows every start and every settings change. Speed also reads `…` for one tick after the default route
   moves to another interface. With no default route (offline) it reads `↓0K ↑0K` from the second
   tick, as before. The binary grows by 48 bytes, to 5,560.
+- A home without `~/.cache` no longer loops on "build failed, retrying": the widget creates the directory
+  before it compiles.
 
 ### Changed
 - Tests: `tests/check.sh` runs the widget's own launch line (no compiler, a failing compiler, 4 bars starting

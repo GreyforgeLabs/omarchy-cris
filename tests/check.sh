@@ -42,7 +42,7 @@ wait $hp || true  # CPU hotplug, started first: 100000 CPUs online, then 1 after
 [ "$(sed -n 10p $out/online.out)" != "c: 100%" ] || fail hotplug "after CPUs went offline the share should be recounted"
 script=$(sed -n "s/.*\"sh\", \"-c\", '\(.*\)',\$/\1/p" BarWidget.qml); mkdir -p $out/bin $out/home/.cache  # the widget's launch line
 launch() { timeout 2 env HOME=$PWD/$out/home PATH=$1 sh -c "$script" sh "$PWD/cris.c" crp 1 /; }
-for x in sh env mv rm; do ln -s "$(command -v $x)" $out/bin/$x; done
+for x in sh env mv rm mkdir; do ln -s "$(command -v $x)" $out/bin/$x; done
 r=0; t=$(launch $PWD/$out/bin) || r=$?  # no compiler at all
 [ "$t" = "cris needs gcc: sudo pacman -S gcc" ] && [ $r -eq 0 ] || fail nogcc "no cc should ask for gcc and exit 0: $t ($r)"
 printf '#!/bin/sh\nexit 1\n' > $out/bin/cc && chmod +x $out/bin/cc
@@ -50,6 +50,8 @@ r=0; t=$(launch $PWD/$out/bin) || r=$?  # a compiler that fails (wrong arch, ful
 [ "$t" = "cris: build failed, retrying" ] && [ $r -eq 1 ] && [ -z "$(ls $out/home/.cache)" ] || fail buildfail "a failed build should exit 1 and clean up: $t ($r)"
 for i in 1 2 3 4; do launch "$PATH" > $out/bar$i & done; wait  # 4 bars starting together on first run
 for i in 1 2 3 4; do grep -q '^c: ' $out/bar$i || fail launch "bar $i of 4 started together printed nothing"; done
+rm -rf $out/home/.cache; launch "$PATH" > $out/nocache || true  # a home without ~/.cache: create it, don't loop on "build failed"
+grep -q '^c: ' $out/nocache || fail nocache "a missing ~/.cache should be created: $(head -1 $out/nocache)"
 rm -rf $out
 echo "ok: $line"
 echo "ok: $full"
