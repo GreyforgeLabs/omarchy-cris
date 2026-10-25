@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.2 — 2026-10-25
 
 ### Fixed
 - A build that fails with gcc installed (wrong architecture, full disk, unwritable cache) no longer reads
