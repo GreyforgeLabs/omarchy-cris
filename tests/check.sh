@@ -35,6 +35,8 @@ variant nohw 's#/sys/class/drm/#/nonexistent/#; s#/sys/class/hwmon/#/nonexistent
 [ "$(timeout 3 $out/nohw tgf 1 | sed -n 2p)" = "temp: n/a gpu: n/a" ] || fail nohw "missing sensors should read n/a"
 variant nomem 's#/proc/meminfo#/nonexistent#'  # used to divide by zero
 [ "$(timeout 3 $out/nomem rs 1 | sed -n 2p)" = "r: 0% sw: 0%" ] || fail nomem "unreadable meminfo should read 0%, not crash"
+head -1 /proc/net/route > $out/route; variant noroute "s#/proc/net/route#$PWD/$out/route#"  # offline: no default route
+[ "$(timeout 3 $out/noroute n 1 | sed -n 2p)" = "i: ↓0K ↑0K" ] || fail noroute "no default route should read 0K after the first tick, not … for good"
 wait $hp || true  # CPU hotplug, started first: 100000 CPUs online, then 1 after 1.5 s; cris recounts every 8th tick
 [ "$(sed -n 2p $out/online.out)" = "c: 100%" ] || fail hotplug "100000 CPUs online should read 100%: $(sed -n 2p $out/online.out)"
 [ "$(sed -n 10p $out/online.out)" != "c: 100%" ] || fail hotplug "after CPUs went offline the share should be recounted"

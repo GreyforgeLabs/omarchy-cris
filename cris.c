@@ -45,7 +45,7 @@ void run(long *sp) {
   long on = 0, nd = sp[0] > 2 ? sp[0] - 3 : 1, tick = sp[0] > 2 ? (q = av[2], num(&q)) : 3, nc = 1;  // tick in seconds
   if (nd > 8) nd = 8;
   if (tick < 1) tick = 1;
-  long ft = -1, fg = -1, fr = -1, fh = -1, gap = 1, gw = -1, gl = 0, gt = -1, x, y = -1, pi = 0, pw = 0, prx = 0, ptx = 0, nt = 0;
+  long ft = -1, fg = -1, fr = -1, fh = -1, gap = 1, gw = -1, gl = 0, gt = -1, x, y = -1, pi = 0, pw = 0, prx = -1, ptx = 0, nt = 0;  // prx < 0: no previous sample
   for (q = op; *q; q++) on |= 1L << (*q & 31);
   for (long i = 0; ON('t') && i < 32 && ft < 0; i++, S(SYS_close, x, 0, 0))  // AMD k10temp/zenpower or Intel coretemp
     if (rd(x = at("/sys/class/hwmon/hwmon#/name", i, 0), t, sizeof t) && (is(t, "k10temp") || is(t, "zenpower") || is(t, "coretemp")))
@@ -91,7 +91,7 @@ void run(long *sp) {
       }
       for (x = 0; x < 16 && q + x < o; x++) p[x] = q[x];
       p[x] = ':', p[x + 1] = 0;
-      if (!(l = is(nic, p)) || *l) for (x = 0, prx = ptx = 0; (nic[x] = p[x]); x++);  // new interface: restart the rate
+      if (!(l = is(nic, p)) || *l) for (x = 0, prx = -1; (nic[x] = p[x]); x++);  // new interface: restart the rate
       for (rd(fd, nd_buf, sizeof nd_buf), q = nd_buf; *q; q++)  // "  name: rx_bytes packets errs drop fifo frame compressed multicast tx_bytes"
         if ((q == nd_buf || q[-1] == ' ' || q[-1] == '\n') && (o = is(q, nic))) {
           for (rx = num(&o), x = 0; x < 8; x++) tx = num(&o);
@@ -113,8 +113,8 @@ void run(long *sp) {
     if (ON('s')) o = f(o, " $: #%", st ? (100 * (st - sw) + st / 2) / st : 0, L("swap", "sw"));
     if (ON('p') || fn >= 0) o = f(o, " $:", 0, L("net", "i"));
     if (ON('p')) o = f(o, ic < 0 ? " n/a" : rtt == -2 ? " …" : rtt < 0 ? " down" : " # ms", rtt, 0);
-    if (fn >= 0) o = !prx ? f(o, " ↓… ↑…", 0, 0) : spd(spd(o, " ↓", rx > prx ? (rx - prx) * 1000 / (t0 - pw) : 0),  // … on a new interface
-                                                      " ↑", ptx && tx > ptx ? (tx - ptx) * 1000 / (t0 - pw) : 0);
+    if (fn >= 0) o = prx < 0 ? f(o, " ↓… ↑…", 0, 0) : spd(spd(o, " ↓", rx > prx ? (rx - prx) * 1000 / (t0 - pw) : 0),  // … on a new interface
+                                                         " ↑", tx > ptx ? (tx - ptx) * 1000 / (t0 - pw) : 0);
     for (long i = 0; i < nd; i++) {  // used / (used + avail), rounded up like df; labelled by last path component
       for (q = l = dk[i]; *q; q++) if (*q == '/' && q[1]) l = q + 1;
       long du = S(SYS_statfs, dk[i], &sf, 0) < 0 ? -1 : (long)(sf.f_blocks - sf.f_bfree), dt = du + (long)sf.f_bavail;

@@ -8,7 +8,8 @@
   with the usual backoff. A missing compiler still asks for gcc.
 - CPU and speed read `…` on the first tick, like the ping, instead of `c: 0%` and `↓0K ↑0K`. That first tick
   follows every start and every settings change. Speed also reads `…` for one tick after the default route
-  moves to another interface. The binary grows by 64 bytes, to 5,576.
+  moves to another interface. With no default route (offline) it reads `↓0K ↑0K` from the second
+  tick, as before. The binary grows by 48 bytes, to 5,560.
 
 ### Changed
 - Tests: `tests/check.sh` runs the widget's own launch line (no compiler, a failing compiler, 4 bars starting
