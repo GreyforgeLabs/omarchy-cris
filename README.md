@@ -13,7 +13,8 @@ Click it for settings. Bright is on, dim is off:
     labels  cris  full                        full: cpu: 4% ram: 57% net: 24 ms disk: 75%
     disks   /  /boot  /mnt/data               found automatically
 
-A sensor the machine does not have (CPU temperature, an amdgpu load counter, a ping socket) reads `n/a`.
+A sensor the machine does not have (CPU temperature, an amdgpu load counter, a ping socket) reads `n/a`. CPU, ping and
+speed need two samples, so they read `…` for the first tick.
 
 ## Why these four
 

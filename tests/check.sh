@@ -25,6 +25,7 @@ echo "$all" | grep -Eq '^c: [0-9]+% t: ([0-9]+°|n/a) g: ([0-9]+%( t: [0-9]+°)?
 [ -z "$(timeout 2 ./cris "" 1 | head -1)" ] || fail off "everything off should print an empty line"
 case $(timeout 2 ./cris rp 1 / | head -1) in "r: "*) ;; *) fail nocpu "cpu off should start the line with r:" ;; esac
 [ "$(timeout 2 ./cris p 1 | head -1)" = "i: …" ] || fail ping-only "ping alone should print only i: …"
+[ "$(timeout 2 ./cris cn 1 | head -1)" = "c: … i: ↓… ↑…" ] || fail first "cpu and speed need two samples: the first tick should read …"
 n=$(timeout 4.5 ./cris c 1 | wc -l); [ "$n" -eq 5 ] || fail ticks "4.5 s at 1 s ticks gave $n lines, not 5"
 variant dead 's/0x01010101/0x017100cb/'  # 203.0.113.1, TEST-NET
 timeout 3 $out/dead crp 1 | sed -n 2p | grep -q 'i: down' || fail down "unreachable host should read down"

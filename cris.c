@@ -100,7 +100,7 @@ void run(long *sp) {
     }
 
     o = b;  // every part starts with a space; the first one is dropped when writing
-    if (ON('c')) o = f(o, " $: #%", cpu < 0 ? 0 : cpu > 100 ? 100 : cpu, L("cpu", "c"));
+    if (ON('c')) o = f(o, pw ? " $: #%" : " $: …", cpu < 0 ? 0 : cpu > 100 ? 100 : cpu, L("cpu", "c"));  // … until there is a delta
     if (ON('t')) o = f(o, ft < 0 ? " $: n/a" : " $: #°", (val(ft) + 500) / 1000, L("temp", "t"));  // millidegrees
     if (fg < 0) { if (ON('g')) o = f(o, " $: n/a", 0, L("gpu", "g")); }  // no GPU with a load counter
     else if (rd(fr, t, sizeof t), *t == 's') o = f(o, " $: off", 0, L("gpu", "g"));  // suspended: a read would wake it
@@ -113,8 +113,8 @@ void run(long *sp) {
     if (ON('s')) o = f(o, " $: #%", st ? (100 * (st - sw) + st / 2) / st : 0, L("swap", "sw"));
     if (ON('p') || fn >= 0) o = f(o, " $:", 0, L("net", "i"));
     if (ON('p')) o = f(o, ic < 0 ? " n/a" : rtt == -2 ? " …" : rtt < 0 ? " down" : " # ms", rtt, 0);
-    if (fn >= 0) o = spd(spd(o, " ↓", prx && rx > prx ? (rx - prx) * 1000 / (t0 - pw) : 0),
-                         " ↑", ptx && tx > ptx ? (tx - ptx) * 1000 / (t0 - pw) : 0);
+    if (fn >= 0) o = !prx ? f(o, " ↓… ↑…", 0, 0) : spd(spd(o, " ↓", rx > prx ? (rx - prx) * 1000 / (t0 - pw) : 0),  // … on a new interface
+                                                      " ↑", ptx && tx > ptx ? (tx - ptx) * 1000 / (t0 - pw) : 0);
     for (long i = 0; i < nd; i++) {  // used / (used + avail), rounded up like df; labelled by last path component
       for (q = l = dk[i]; *q; q++) if (*q == '/' && q[1]) l = q + 1;
       long du = S(SYS_statfs, dk[i], &sf, 0) < 0 ? -1 : (long)(sf.f_blocks - sf.f_bfree), dt = du + (long)sf.f_bavail;
