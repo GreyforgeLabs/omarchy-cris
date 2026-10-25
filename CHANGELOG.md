@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- A build that fails with gcc installed (wrong architecture, full disk, unwritable cache) no longer reads
+  "cris needs gcc". It says the build failed, removes its temporary file and exits 1, so the widget retries it
+  with the usual backoff. A missing compiler still asks for gcc.
+- CPU and speed read `…` on the first tick, like the ping, instead of `c: 0%` and `↓0K ↑0K`. That first tick
+  follows every start and every settings change. Speed also reads `…` for one tick after the default route
+  moves to another interface. The binary grows by 64 bytes, to 5,576.
+
+### Changed
+- Tests: `tests/check.sh` runs the widget's own launch line (no compiler, a failing compiler, 4 bars starting
+  together), checks the first-tick `…`, and builds into `build/` instead of leaving `./cris` in the repository.
+
 ## 1.0.1 — 2026-10-14
 
 ### Fixed
