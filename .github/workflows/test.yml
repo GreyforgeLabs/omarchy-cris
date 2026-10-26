@@ -1,0 +1,24 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install qmlformat (gcc is already on the runner)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-declarative-dev-tools
+          test -x /usr/lib/qt6/bin/qmlformat
+      - name: Build and check every option
+        run: sh tests/check.sh
