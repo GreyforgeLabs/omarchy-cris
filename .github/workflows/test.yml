@@ -1,0 +1,26 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install qmlformat (gcc is already on the runner)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qt6-declarative-dev-tools
+          test -x /usr/lib/qt6/bin/qmlformat
+      - name: Allow unprivileged ping sockets for the latency probe
+        run: sudo sysctl -w net.ipv4.ping_group_range="0 2147483647"
+      - name: Build and check every option
+        run: sh tests/check.sh
