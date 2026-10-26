@@ -29,7 +29,7 @@ Click it for settings. Bright is on, dim is off:
 show    cpu  temp  gpu  ram  swap  ping  speed
 every   1s  3s  5s  10s
 labels  cris  full                        full: cpu: 4% ram: 57% net: 24 ms disk: 75%
-disks   /  /boot  /mnt/data               found automatically
+disks   /  /boot  /mnt/media              found automatically
 ```
 
 ## Why these four
